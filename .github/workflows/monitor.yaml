@@ -1,0 +1,37 @@
+name: Monitor Application
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Every 5 minutes
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check application uptime
+        run: |
+          curl -f https://<your-project-id>.appspot.com/ || exit 1
+      - name: Push metrics to Google Cloud Monitoring
+        run: |
+          curl -X POST \
+          -H "Authorization: Bearer $(gcloud auth print-access-token --impersonate-service-account=${{ secrets.GCP_SA_EMAIL }})" \
+          -H "Content-Type: application/json" \
+          "https://monitoring.googleapis.com/v3/projects/${{ secrets.GCP_PROJECT_ID }}/timeSeries" \
+          -d '{
+            "timeSeries": [
+              {
+                "metric": {"type": "custom.googleapis.com/uptime"},
+                "resource": {"type": "gae_app", "labels": {"project_id": "${{ secrets.GCP_PROJECT_ID }}", "module_id": "default", "zone": "us-central"}},
+                "points": [{
+                  "interval": {"endTime": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"},
+                  "value": {"doubleValue": 1}
+                }]
+              },
+              {
+                "metric": {"type": "custom.googleapis.com/error_rate"},
+                "resource": {"type": "gae_app", "labels": {"project_id": "${{ secrets.GCP_PROJECT_ID }}", "module_id": "default", "zone": "us-central"}},
+                "points": [{
+                  "interval": {"endTime": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"},
+                  "value": {"doubleValue": 0.02}
+                }]
+              }
+            ]
+          }'
