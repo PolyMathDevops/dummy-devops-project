@@ -9,7 +9,7 @@ jobs:
       - name: Check application uptime
         run: |
           curl -f https://<your-project-id>.appspot.com/ || exit 1
-      - name: Push metrics to Google Cloud Monitoring
+      - name: Push metrics to Google Cloud Monitoring UI
         run: |
           curl -X POST \
           -H "Authorization: Bearer $(gcloud auth print-access-token --impersonate-service-account=${{ secrets.GCP_SA_EMAIL }})" \
